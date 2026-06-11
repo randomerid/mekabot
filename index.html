@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MekaBot AI - Dashboard Mekanik</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Custom scrollbar untuk area chat */
+        .chat-scroll::-webkit-scrollbar { width: 6px; }
+        .chat-scroll::-webkit-scrollbar-track { background: transparent; }
+        .chat-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen flex flex-col">
+
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-amber-500 text-slate-950 p-2 rounded-xl font-bold tracking-wider text-sm">
+                🛠️ MEKABOT
+            </div>
+            <div>
+                <h1 class="text-md font-bold text-white">AI Diagnostic System</h1>
+                <p class="text-xs text-emerald-400 flex items-center">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 inline-block mr-1.5 animate-pulse"></span> Engine Gemini Ready
+                </p>
+            </div>
+        </div>
+        <div class="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-md border border-slate-700">
+            Route: <span id="route-indicator" class="font-mono text-amber-400">None</span>
+        </div>
+    </header>
+
+    <main class="flex-1 flex max-w-6xl w-full mx-auto p-4 gap-4 overflow-hidden">
+        
+        <section class="w-1/3 bg-slate-800 rounded-2xl p-4 border border-slate-700 flex flex-col hidden md:flex">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 border-b border-slate-700 pb-2">
+                Graph State Monitor
+            </h2>
+            <div class="space-y-4 flex-1 overflow-y-auto pr-1 text-xs font-mono">
+                <div>
+                    <label class="text-slate-500 block mb-1">Detected Symptoms:</label>
+                    <div id="state-symptoms" class="bg-slate-950 p-2.5 rounded-lg text-amber-300 min-h-[50px] border border-slate-800">[]</div>
+                </div>
+                <div>
+                    <label class="text-slate-500 block mb-1">Asked Questions History:</label>
+                    <div id="state-questions" class="bg-slate-950 p-2.5 rounded-lg text-blue-300 min-h-[50px] border border-slate-800">[]</div>
+                </div>
+                <div>
+                    <label class="text-slate-500 block mb-1">Diagnosis Status:</label>
+                    <div id="state-complete" class="bg-slate-950 p-2.5 rounded-lg text-slate-400 border border-slate-800">Incomplete</div>
+                </div>
+            </div>
+            <button id="reset-btn" class="w-full mt-4 bg-rose-900/40 hover:bg-rose-900/70 border border-rose-700 text-rose-200 py-2 rounded-xl text-xs font-semibold transition">
+                Reset Session & State
+            </button>
+        </section>
+
+        <section class="flex-1 bg-slate-800 rounded-2xl border border-slate-700 flex flex-col overflow-hidden shadow-2xl">
+            <div id="chat-window" class="flex-1 p-4 overflow-y-auto space-y-4 chat-scroll bg-slate-850">
+                <div class="flex items-start space-x-3">
+                    <div class="bg-amber-500 text-slate-950 p-1.5 rounded-lg text-xs font-bold">🤖</div>
+                    <div class="bg-slate-700 p-3 rounded-2xl rounded-tl-none max-w-[80%] shadow-md">
+                        <p class="text-sm">Halo! Saya <strong>MekaBot</strong>. Ada masalah apa dengan motor Anda hari ini? Ceritakan gejalanya, atau tanyakan skema, komparasi produk, serta modifikasi kendaraan.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="chat-form" class="p-4 bg-slate-900 border-t border-slate-700 flex gap-2">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    autocomplete="off"
+                    placeholder="Contoh: 'Beat FI saya brebet pas ditarik gas' atau 'Jelaskan skema CVT'..." 
+                    class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-500 text-white placeholder-slate-500 transition"
+                >
+                <button 
+                    type="submit" 
+                    class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-5 py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center"
+                >
+                    Kirim
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <script>
+        // Inisialisasi State lokal untuk melacak memori LangGraph
+        let sessionState = {
+            symptoms: [],
+            asked_questions: []
+        };
+
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const routeIndicator = document.getElementById('route-indicator');
+        
+        // Element Monitor
+        const stateSymptoms = document.getElementById('state-symptoms');
+        const stateQuestions = document.getElementById('state-questions');
+        const stateComplete = document.getElementById('state-complete');
+        const resetBtn = document.getElementById('reset-btn');
+
+        // Fungsi memperbarui UI Monitor Developer
+        function updateMonitor(data) {
+            sessionState.symptoms = data.symptoms || [];
+            sessionState.asked_questions = data.asked_questions || [];
+
+            stateSymptoms.innerText = JSON.stringify(sessionState.symptoms, null, 2);
+            stateQuestions.innerText = JSON.stringify(sessionState.asked_questions, null, 2);
+            routeIndicator.innerText = (data.current_route || 'None').toUpperCase();
+            
+            if (data.is_complete) {
+                stateComplete.innerText = "COMPLETE (Solved)";
+                stateComplete.className = "bg-slate-950 p-2.5 rounded-lg text-emerald-400 border border-emerald-900/30 font-bold";
+            } else {
+                stateComplete.innerText = data.current_route === 'troubleshooting' ? "INTERVIEWING..." : "Idle / Handled";
+                stateComplete.className = "bg-slate-950 p-2.5 rounded-lg text-amber-400 border border-slate-800";
+            }
+        }
+
+        // Fungsi Append Bubble Chat
+        function appendMessage(text, isUser = false) {
+            const msgRow = document.createElement('div');
+            msgRow.className = `flex items-start space-x-3 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = isUser ? 'bg-blue-600 text-white p-1.5 rounded-lg text-xs font-bold' : 'bg-amber-500 text-slate-950 p-1.5 rounded-lg text-xs font-bold';
+            avatar.innerText = isUser ? '👨‍💻' : '🤖';
+
+            const bubble = document.createElement('div');
+            bubble.className = isUser 
+                ? 'bg-blue-600/30 border border-blue-500/30 p-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm whitespace-pre-wrap' 
+                : 'bg-slate-700/80 p-3 rounded-2xl rounded-tl-none max-w-[80%] text-sm whitespace-pre-wrap';
+            
+            bubble.innerHTML = text;
+
+            msgRow.appendChild(avatar);
+            msgRow.appendChild(bubble);
+            chatWindow.appendChild(msgRow);
+            
+            // Auto scroll ke bawah
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Event listener saat form dikirim
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 1. Cetak bubble chat user
+            appendMessage(text, true);
+            userInput.value = '';
+
+            // 2. Tampilkan loading indicator pasif
+            const loadingId = 'loading-' + Date.now();
+            const loadingRow = document.createElement('div');
+            loadingRow.id = loadingId;
+            loadingRow.className = 'text-xs text-slate-500 italic px-10 animate-pulse';
+            loadingRow.innerText = 'MekaBot sedang menganalisis mekanikal...';
+            chatWindow.appendChild(loadingRow);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            try {
+                // 3. Tembak ke API FastAPI kita
+                const response = await fetch('http://127.0.0.1:8000/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_input: text,
+                        symptoms: sessionState.symptoms,
+                        asked_questions: sessionState.asked_questions
+                    })
+                });
+
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+
+                // Hapus loading
+                document.getElementById(loadingId).remove();
+
+                // 4. Update Monitor panel samping
+                updateMonitor(data);
+
+                // --- PROSES DAN PARSING DATA RESPONS ---
+                let resData = data.response.data;
+                let isObject = typeof resData === "object" && resData !== null;
+
+                // JIKA resData berupa string, coba parse menjadi objek JSON
+                if (typeof resData === "string") {
+                    try {
+                        resData = JSON.parse(resData);
+                        isObject = true;
+                    } catch (e) {
+                        // Jika gagal di-parse, biarkan tetap sebagai teks biasa
+                        isObject = false;
+                    }
+                }
+
+                // 5. Ekstrak pesan jawaban bot berdasarkan tipe responsenya
+                let botReply = "";
+
+                if (data.response.status === "interviewing") {
+                    botReply = data.response.message;
+                } else if (data.response.status === "solved") {
+                    botReply = `<strong>🚨 ANALISIS KERUSAKAN:</strong>\n${data.response.analysis}\n\n<strong>🔧 SOLUSI & PERBAIKAN:</strong>\n${data.response.steps}`;
+                } else if (data.response.category === "knowledge" && isObject) {
+                    // --- RE-ENGINEERING PARSER: AGNOSTIK STRUKTUR JSON ---
+                    const k = resData;
+                    
+                    // 1. Ambil Judul dan Pendahuluan secara dinamis
+                    let judulAplikasi = k.judul || k.title || "Penjelasan Komponen Sistem Motor";
+                    let infoPendahuluan = k.pendahuluan || k.introduction || k.deskripsi || k.description || "";
+                    
+                    botReply = `<h3 class="text-lg font-bold text-amber-400 mb-2">📋 ${judulAplikasi}</h3>`;
+                    if (infoPendahuluan) {
+                        botReply += `<p class="text-sm text-slate-300 mb-4">${infoPendahuluan}</p>`;
+                    }
+                    
+                    // 2. Loop semua properti di dalam JSON secara dinamis
+                    for (const key in k) {
+                        // Skip properti non-list yang sudah dihandle di atas
+                        if (["judul", "title", "pendahuluan", "introduction", "deskripsi", "description", "penutup", "conclusion"].includes(key)) {
+                            continue;
+                        }
+                        
+                        const itemData = k[key];
+                        
+                        // Jika isi properti tersebut adalah sebuah List/Array
+                        if (Array.isArray(itemData) && itemData.length > 0) {
+                            // Ubah nama key (misal: "komponen_utama_cvt") menjadi judul section yang rapi ("Komponen Utama Cvt")
+                            let sectionTitle = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                            
+                            botReply += `<h4 class="text-xs font-bold text-blue-400 uppercase tracking-wider mt-4 mb-2">🔍 ${sectionTitle}:</h4>`;
+                            botReply += `<div class="space-y-2 mb-4">`;
+                            
+                            itemData.forEach(item => {
+                                if (typeof item === "object" && item !== null) {
+                                    // Handle format objek (seperti: {nama: "...", fungsi: "..."} atau {tahap: "...", penjelasan: "..."})
+                                    const values = Object.values(item);
+                                    if (values.length >= 2) {
+                                        botReply += `<div class="text-sm bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/40">
+                                            <strong class="text-amber-300">${values[0]}:</strong> ${values[1]}
+                                        </div>`;
+                                    } else if (values.length === 1) {
+                                        botReply += `<div class="text-sm bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/40">${values[0]}</div>`;
+                                    }
+                                } else if (typeof item === "string") {
+                                    // Handle format array string murni (seperti daftar keunggulan/kekurangan)
+                                    botReply += `<div class="text-sm bg-slate-800/30 p-2 rounded-lg border border-slate-800 pl-3 text-slate-300">- ${item}</div>`;
+                                }
+                            });
+                            
+                            botReply += `</div>`;
+                        }
+                    }
+                    
+                    // 3. Ambil Bagian Penutup
+                    let infoPenutup = k.penutup || k.conclusion || "";
+                    if (infoPenutup) {
+                        botReply += `<p class="text-xs text-slate-400 italic mt-4 border-t border-slate-700/50 pt-2">${infoPenutup}</p>`;
+                    }
+                } else {
+                    // Fallback jika berupa teks biasa (string murni)
+                    botReply = data.response.data || JSON.stringify(data.response);
+                }
+
+                // 6. Tampilkan bubble chat bot
+                appendMessage(botReply);
+
+            } catch (error) {
+                if (document.getElementById(loadingId)) document.getElementById(loadingId).remove();
+                appendMessage("<span class='text-rose-400'>Gagal terhubung ke AI Engine server atau terjadi kesalahan parsing data.</span>");
+                console.error(error);
+            }
+        });
+
+        // Reset Session Action
+        resetBtn.addEventListener('click', () => {
+            sessionState = { symptoms: [], asked_questions: [] };
+            chatWindow.innerHTML = '';
+            appendMessage("Sesi dan data diagnosis telah direset. Silakan ajukan keluhan baru.");
+            updateMonitor({ symptoms: [], asked_questions: [], current_route: 'None', is_complete: false });
+        });
+    </script>
+</body>
+</html>
