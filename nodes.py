@@ -15,7 +15,7 @@ load_dotenv()
 # Temperature 0 memastikan jawaban teknis mekanik tetap presisi dan konsisten
 #llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0)
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash", 
+    model="gemini-2.5-flash", 
     temperature=0,
     google_api_key=os.getenv("GOOGLE_API_KEY"),
     model_kwargs={"response_mime_type": "application/json"}
