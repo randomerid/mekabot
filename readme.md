@@ -114,7 +114,7 @@ Mekabot memiliki beberapa fitur :
 ### 1. Inisialisasi Awal (Route: None)
 State pertama kali aplikasi dijalankan, menunggu input user untuk routing.
 
-![Inisialisasi Awal](screenshots/01-initial-state.png)
+![Inisialisasi Awal](screenshots/index.jpg)
 
 **Status**: Route None | Diagnosis Status: Incomplete
 
@@ -123,7 +123,7 @@ State pertama kali aplikasi dijalankan, menunggu input user untuk routing.
 ### 2. Troubleshooting Interview Mode (Route: TROUBLESHOOTING)
 Bot melakukan interview/tanya-jawab untuk mengumpulkan gejala dan informasi teknis motor sebelum memberikan solusi.
 
-![Troubleshooting Interview](screenshots/02-troubleshooting-interview.png)
+![Troubleshooting Interview](screenshots/troubleshot.jpg)
 
 **Status**: Route TROUBLESHOOTING | Diagnosis Status: INTERVIEWING...
 - Detected Symptoms: tangki bensin terisi, "tidak ada percikan api di busi saat distarter"
@@ -134,7 +134,7 @@ Bot melakukan interview/tanya-jawab untuk mengumpulkan gejala dan informasi tekn
 ### 3. Knowledge Base Route (Route: KNOWLEDGE)
 Bot menampilkan penjelasan detail teknis mengenai komponen motor berdasarkan pertanyaan user.
 
-![Knowledge Base Route](screenshots/03-knowledge-explanation.png)
+![Knowledge Base Route](screenshots/knowledge.jpg)
 
 **Status**: Route KNOWLEDGE | Diagnosis Status: Idle / Handled
 - User Query: "jelaskan apa itu cvt"
