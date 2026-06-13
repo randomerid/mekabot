@@ -109,6 +109,39 @@ Mekabot memiliki beberapa fitur :
 | `is_complete` | `bool` | Indikator kelengkapan data troubleshooting |
 | `response_data` | `dict` | Output JSON akhir |
 
+## Screenshot & Demo
+
+### 1. Inisialisasi Awal (Route: None)
+State pertama kali aplikasi dijalankan, menunggu input user untuk routing.
+
+![Inisialisasi Awal](screenshots/01-initial-state.png)
+
+**Status**: Route None | Diagnosis Status: Incomplete
+
+---
+
+### 2. Troubleshooting Interview Mode (Route: TROUBLESHOOTING)
+Bot melakukan interview/tanya-jawab untuk mengumpulkan gejala dan informasi teknis motor sebelum memberikan solusi.
+
+![Troubleshooting Interview](screenshots/02-troubleshooting-interview.png)
+
+**Status**: Route TROUBLESHOOTING | Diagnosis Status: INTERVIEWING...
+- Detected Symptoms: tangki bensin terisi, "tidak ada percikan api di busi saat distarter"
+- Asked Questions: Pertanyaan untuk validasi gejala lebih detail
+
+---
+
+### 3. Knowledge Base Route (Route: KNOWLEDGE)
+Bot menampilkan penjelasan detail teknis mengenai komponen motor berdasarkan pertanyaan user.
+
+![Knowledge Base Route](screenshots/03-knowledge-explanation.png)
+
+**Status**: Route KNOWLEDGE | Diagnosis Status: Idle / Handled
+- User Query: "jelaskan apa itu cvt"
+- Response: Penjelasan detail Continuously Variable Transmission (CVT) dengan komponen utama dan fungsinya
+
+---
+
 ## Implementasi
 
 * file .env berisi : **GOOGLE_API_KEY=**
